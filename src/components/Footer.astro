@@ -1,0 +1,80 @@
+---
+import Wordmark from './Wordmark.astro';
+import { site, repos } from '../data/site';
+const year = new Date().getFullYear();
+---
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__brand">
+      <Wordmark />
+      <p>{site.tagline}</p>
+    </div>
+    <nav aria-label="Footer">
+      <div>
+        <h2 class="eyebrow">Project</h2>
+        <ul>
+          <li><a href={site.github} rel="noopener">GitHub organisation</a></li>
+          <li><a href={site.releases} rel="noopener">Server releases</a></li>
+          <li><a href={site.issues} rel="noopener">Issues</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="eyebrow">Docs</h2>
+        <ul>
+          <li><a href="/docs/getting-started/">Getting started</a></li>
+          <li><a href="/docs/configuration/">Configuration</a></li>
+          <li><a href="/docs/writing-a-plugin/">Writing a plugin</a></li>
+          <li><a href="/docs/architecture/">Architecture</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="eyebrow">Contracts</h2>
+        <ul>
+          <li><a href={repos.plugin} rel="noopener">plugin</a></li>
+          <li><a href={repos.clientplugin} rel="noopener">clientplugin</a></li>
+          <li><a href={repos.protocol} rel="noopener">protocol</a></li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+  <div class="container footer__legal">
+    <p>The server is GPL-3.0-or-later; the client and protocol are GPL-3.0-or-later with the Pacenote Plugin Exception. The plugin contracts are Apache-2.0. © {year} the Pacenote contributors.</p>
+  </div>
+</footer>
+<style>
+  .footer {
+    border-top: 1px solid var(--border);
+    background: var(--bg-2);
+    padding-block: var(--s-7) var(--s-5);
+  }
+  .footer__inner {
+    display: grid;
+    gap: var(--s-6);
+  }
+  .footer__brand p { color: var(--muted); margin-top: var(--s-2); }
+  nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--s-5);
+  }
+  nav .eyebrow { margin-bottom: var(--s-3); }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  ul a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    text-decoration: none;
+    color: var(--fg-2);
+    font-size: 0.9375rem;
+  }
+  ul a:hover { color: var(--fg); }
+  .footer__legal {
+    margin-top: var(--s-6);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--border);
+  }
+  .footer__legal p { color: var(--muted); font-size: 0.8125rem; }
+  @media (min-width: 900px) {
+    .footer__inner { grid-template-columns: 1.2fr 2fr; }
+  }
+</style>

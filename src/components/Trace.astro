@@ -1,0 +1,169 @@
+---
+/**
+ * A lap trace: speed, throttle and brake against distance, drawn at build time from a
+ * made-up circuit so the hero has real-looking data without shipping any driver's lap.
+ */
+type Corner = { at: number; min: number; brakeLen: number; exitLen: number; label: string };
+
+const corners: Corner[] = [
+  { at: 0.11, min: 0.34, brakeLen: 0.045, exitLen: 0.07, label: 'T1' },
+  { at: 0.24, min: 0.58, brakeLen: 0.025, exitLen: 0.04, label: 'T2' },
+  { at: 0.31, min: 0.42, brakeLen: 0.035, exitLen: 0.06, label: 'T3' },
+  { at: 0.47, min: 0.28, brakeLen: 0.05, exitLen: 0.09, label: 'T4' },
+  { at: 0.62, min: 0.66, brakeLen: 0.02, exitLen: 0.035, label: 'T5' },
+  { at: 0.7, min: 0.5, brakeLen: 0.03, exitLen: 0.05, label: 'T6' },
+  { at: 0.86, min: 0.38, brakeLen: 0.04, exitLen: 0.08, label: 'T7' },
+];
+
+const W = 640;
+const H = 300;
+const PAD = { l: 8, r: 8, t: 22, b: 30 };
+const plotW = W - PAD.l - PAD.r;
+const speedBand = { top: PAD.t, h: 150 };
+const pedalBand = { top: PAD.t + 170, h: 70 };
+
+const N = 480;
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const ease = (t: number) => 1 - Math.pow(1 - t, 2);
+
+function sample(x: number) {
+  let speed = 0.96 + 0.03 * Math.sin(x * 40);
+  let brake = 0;
+  let throttle = 1;
+  for (const c of corners) {
+    const bStart = c.at - c.brakeLen;
+    const eEnd = c.at + c.exitLen;
+    if (x >= bStart && x < c.at) {
+      const t = (x - bStart) / c.brakeLen;
+      speed = 0.96 - (0.96 - c.min) * ease(t);
+      brake = Math.max(brake, t < 0.15 ? t / 0.15 : 1 - Math.pow(t, 3) * 0.6);
+      throttle = 0;
+    } else if (x >= c.at && x < eEnd) {
+      const t = (x - c.at) / c.exitLen;
+      speed = c.min + (0.96 - c.min) * ease(t);
+      brake = 0;
+      throttle = clamp(t * 1.8, 0, 1) * (0.85 + 0.15 * Math.sin(x * 90));
+    }
+  }
+  return { speed: clamp(speed, 0, 1), brake: clamp(brake, 0, 1), throttle: clamp(throttle, 0, 1) };
+}
+
+const pts = Array.from({ length: N + 1 }, (_, i) => {
+  const x = i / N;
+  const s = sample(x);
+  return { px: PAD.l + x * plotW, ...s };
+});
+
+const y = (band: { top: number; h: number }, v: number) => band.top + band.h - v * band.h;
+const line = (band: { top: number; h: number }, key: 'speed' | 'brake' | 'throttle') =>
+  pts.map((p) => `${p.px.toFixed(1)},${y(band, p[key]).toFixed(1)}`).join(' ');
+
+const speedLine = line(speedBand, 'speed');
+const throttleLine = line(pedalBand, 'throttle');
+const brakeLine = line(pedalBand, 'brake');
+const areaClose = `${(PAD.l + plotW).toFixed(1)},${y(speedBand, 0)} ${PAD.l},${y(speedBand, 0)}`;
+
+const focus = corners[3];
+const focusX = PAD.l + focus.at * plotW;
+const focusY = y(speedBand, focus.min);
+---
+<figure class="trace" aria-labelledby="trace-title" aria-describedby="trace-desc">
+  <figcaption class="trace__cap">
+    <span id="trace-title" class="eyebrow">Lap 7 · practice</span>
+    <span class="trace__legend">
+      <span class="trace__key"><i style="--c: var(--trace-speed)"></i>speed</span>
+      <span class="trace__key"><i style="--c: var(--trace-throttle)"></i>throttle</span>
+      <span class="trace__key"><i style="--c: var(--trace-brake)"></i>brake</span>
+    </span>
+  </figcaption>
+  <p id="trace-desc" class="sr-only">
+    A telemetry trace of one lap: speed, throttle and brake plotted against distance, with seven corners
+    marked. Turn 4 is highlighted with the cue “Brake twenty metres later”.
+  </p>
+  <svg viewBox={`0 0 ${W} ${H}`} role="presentation" focusable="false">
+    <defs>
+      <linearGradient id="speedFill" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0" stop-color="var(--trace-speed)" stop-opacity="0.05" />
+        <stop offset="1" stop-color="var(--trace-speed)" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+
+    <!-- grid -->
+    {[0.25, 0.5, 0.75].map((f) => (
+      <line x1={PAD.l} x2={W - PAD.r} y1={y(speedBand, f)} y2={y(speedBand, f)} stroke="var(--trace-grid)" stroke-width="1" />
+    ))}
+    <line x1={PAD.l} x2={W - PAD.r} y1={y(speedBand, 0)} y2={y(speedBand, 0)} stroke="var(--border-strong)" stroke-width="1" />
+    <line x1={PAD.l} x2={W - PAD.r} y1={y(pedalBand, 0)} y2={y(pedalBand, 0)} stroke="var(--border-strong)" stroke-width="1" />
+
+    <!-- corner markers -->
+    {corners.map((c) => {
+      const cx = PAD.l + c.at * plotW;
+      return (
+        <g>
+          <line x1={cx} x2={cx} y1={PAD.t} y2={H - PAD.b + 6} stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4" />
+          <text x={cx} y={H - 8} text-anchor="middle" class="trace__tick">{c.label}</text>
+        </g>
+      );
+    })}
+
+    <!-- traces -->
+    <polygon points={`${speedLine} ${areaClose}`} fill="url(#speedFill)" />
+    <polyline class="trace__line trace__line--throttle" points={throttleLine} />
+    <polyline class="trace__line trace__line--brake" points={brakeLine} />
+    <polyline class="trace__line trace__line--speed" points={speedLine} />
+
+    <!-- highlighted corner -->
+    <circle cx={focusX} cy={focusY} r="4" fill="var(--bg)" stroke="var(--accent)" stroke-width="2" />
+    <line x1={focusX} y1={focusY} x2={focusX - 18} y2={focusY + 27} stroke="var(--accent)" stroke-width="1" />
+    <g transform={`translate(${focusX - 208} ${focusY + 12})`}>
+      <rect width="190" height="30" rx="6" fill="var(--card-2)" stroke="var(--border-strong)" />
+      <text x="10" y="20" class="trace__cue">T4 · brake 20 m later</text>
+    </g>
+  </svg>
+</figure>
+<style>
+  .trace {
+    margin: 0;
+    padding: var(--s-4);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.8);
+  }
+  .trace__cap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-4);
+    margin-bottom: var(--s-3);
+  }
+  .trace__legend { display: flex; gap: var(--s-4); }
+  .trace__key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .trace__key i { width: 14px; height: 2px; background: var(--c); border-radius: 1px; }
+  svg { width: 100%; height: auto; }
+  .trace__tick { font: 500 11px var(--font-mono); fill: var(--muted); letter-spacing: 0.04em; }
+  .trace__cue { font: 500 12px var(--font-mono); fill: var(--fg); }
+  .trace__line { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+  .trace__line--speed { stroke: var(--trace-speed); }
+  .trace__line--throttle { stroke: var(--trace-throttle); stroke-width: 1.4; }
+  .trace__line--brake { stroke: var(--trace-brake); stroke-width: 1.4; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .trace__line {
+      stroke-dasharray: 2000;
+      stroke-dashoffset: 2000;
+      animation: draw 1.6s var(--ease) forwards;
+    }
+    .trace__line--throttle { animation-delay: 0.15s; }
+    .trace__line--brake { animation-delay: 0.3s; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+  }
+</style>

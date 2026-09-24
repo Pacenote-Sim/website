@@ -1,0 +1,52 @@
+---
+import '../styles/global.css';
+import { site } from '../data/site';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path of this page, for the canonical URL. */
+  path?: string;
+}
+const { title, description, path = Astro.url.pathname } = Astro.props;
+const canonical = new URL(path, site.url).href;
+const fullTitle = title === site.name ? `${site.name} — ${site.tagline}` : `${title} · ${site.name}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="theme-color" content="#0a0c10" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <slot />
+  </body>
+</html>
+<style>
+  .skip {
+    position: absolute;
+    left: var(--s-4);
+    top: -100px;
+    z-index: 100;
+    padding: var(--s-2) var(--s-4);
+    background: var(--accent);
+    color: var(--accent-fg);
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .skip:focus { top: var(--s-4); }
+</style>

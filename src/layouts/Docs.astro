@@ -1,0 +1,138 @@
+---
+import Base from './Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import { getCollection } from 'astro:content';
+
+interface Props {
+  title: string;
+  description: string;
+  current: string;
+  /** GitHub path of the source file, for the edit link. */
+  editUrl?: string;
+}
+const { title, description, current, editUrl } = Astro.props;
+
+const all = (await getCollection('docs')).sort((a, b) => a.data.order - b.data.order);
+const idx = all.findIndex((d) => d.id === current);
+const prev = idx > 0 ? all[idx - 1] : null;
+const next = idx >= 0 && idx < all.length - 1 ? all[idx + 1] : null;
+---
+<Base title={title} description={description}>
+  <Nav variant="docs" />
+  <div class="container docs">
+    <aside class="docs__side">
+      <nav aria-label="Documentation">
+        <p class="eyebrow">Documentation</p>
+        <ul>
+          {all.map((d) => (
+            <li>
+              <a href={`/docs/${d.id}/`} aria-current={d.id === current ? 'page' : undefined}>{d.data.title}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+    <main id="main" class="docs__main">
+      <article class="prose">
+        <slot />
+      </article>
+      <nav class="docs__pager" aria-label="Previous and next">
+        {prev ? (
+          <a class="docs__pager-link" href={`/docs/${prev.id}/`} rel="prev">
+            <span class="eyebrow">Previous</span>
+            <span>{prev.data.title}</span>
+          </a>
+        ) : <span />}
+        {next && (
+          <a class="docs__pager-link docs__pager-link--next" href={`/docs/${next.id}/`} rel="next">
+            <span class="eyebrow">Next</span>
+            <span>{next.data.title} <Icon name="arrow" /></span>
+          </a>
+        )}
+      </nav>
+      {editUrl && (
+        <p class="docs__edit">
+          <a href={editUrl} rel="noopener">Edit this page on GitHub <Icon name="external" /></a>
+        </p>
+      )}
+    </main>
+  </div>
+  <Footer />
+</Base>
+<style>
+  .docs {
+    display: grid;
+    gap: var(--s-6);
+    padding-block: var(--s-6) var(--s-8);
+  }
+  .docs__side .eyebrow { margin-bottom: var(--s-3); }
+  .docs__side ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+  }
+  .docs__side a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--s-3);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--fg-2);
+    font-size: 0.9375rem;
+    border: 1px solid transparent;
+  }
+  .docs__side a:hover { color: var(--fg); background: var(--bg-2); }
+  .docs__side a[aria-current='page'] {
+    color: var(--fg);
+    background: var(--card);
+    border-color: var(--border);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .docs__main { min-width: 0; }
+  .docs__pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+    margin-top: var(--s-8);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--border);
+  }
+  .docs__pager-link {
+    display: grid;
+    gap: 4px;
+    padding: var(--s-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: var(--fg);
+    transition: border-color 160ms var(--ease), background 160ms var(--ease);
+  }
+  .docs__pager-link:hover { border-color: var(--border-strong); background: var(--card); }
+  .docs__pager-link--next { text-align: right; }
+  .docs__pager-link--next span:last-child { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .docs__pager-link :global(svg) { width: 16px; height: 16px; }
+  .docs__edit { margin-top: var(--s-5); font-size: 0.875rem; }
+  .docs__edit a { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); min-height: 32px; }
+  .docs__edit a:hover { color: var(--fg); }
+  .docs__edit :global(svg) { width: 14px; height: 14px; }
+
+  @media (min-width: 900px) {
+    .docs {
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: var(--s-8);
+      padding-block: var(--s-7) var(--s-9);
+    }
+    .docs__side nav {
+      position: sticky;
+      top: calc(var(--nav-h) + var(--s-6));
+    }
+    .docs__side ul { flex-direction: column; gap: 2px; }
+    .docs__side a { display: flex; }
+  }
+</style>

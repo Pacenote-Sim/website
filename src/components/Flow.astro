@@ -1,0 +1,113 @@
+---
+/** The data path, as four steps and one return. Reflows to a column on narrow screens. */
+const steps = [
+  {
+    n: '01',
+    title: 'Simulator',
+    body: 'The game publishes its state while it runs. Pacenote reads it through a source plugin, so any simulator can be added.',
+    tag: null,
+  },
+  {
+    n: '02',
+    title: 'Client',
+    body: 'One program beside the sim. It measures every lap and corner as it is driven and sends them to your team\u2019s server.',
+    tag: 'runs on the rig',
+  },
+  {
+    n: '03',
+    title: 'Server',
+    body: 'One binary your team runs, with its own database. Drivers pair a client, laps arrive, the panel shows where the time went.',
+    tag: 'you host it',
+  },
+  {
+    n: '04',
+    title: 'Plugins',
+    body: 'Separate programs told when a lap or stint finishes: coaching, a voice, charts. Each says what it calls and what it may spend.',
+    tag: 'any licence',
+  },
+];
+---
+<div class="flow" role="list">
+  {steps.map((s, i) => (
+    <div class="flow__step" role="listitem">
+      <div class="flow__head">
+        <span class="flow__n">{s.n}</span>
+        {s.tag && <span class="tag tag--muted">{s.tag}</span>}
+      </div>
+      <h3>{s.title}</h3>
+      <p>{s.body}</p>
+      {i < steps.length - 1 && (
+        <svg class="flow__arrow" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      )}
+    </div>
+  ))}
+  <div class="flow__return" role="listitem">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+    <p><strong>And back.</strong> A plugin's client half, a companion, runs inside the client: it posts the lap, gets the coach's lines, and plays them before the next corner.</p>
+  </div>
+</div>
+<style>
+  .flow {
+    display: grid;
+    gap: var(--s-3);
+  }
+  .flow__step {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--s-5);
+  }
+  .flow__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--s-4);
+  }
+  .flow__n {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  .flow__step h3 { margin-bottom: var(--s-2); }
+  .flow__step p { color: var(--fg-2); font-size: 0.9375rem; }
+  .flow__arrow {
+    position: absolute;
+    width: 20px; height: 20px;
+    color: var(--muted);
+    left: 50%;
+    bottom: -18px;
+    transform: translateX(-50%) rotate(90deg);
+    background: var(--bg);
+    border-radius: 50%;
+    z-index: 1;
+  }
+  .flow__return {
+    display: flex;
+    gap: var(--s-3);
+    align-items: flex-start;
+    padding: var(--s-4) var(--s-5);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    color: var(--fg-2);
+    font-size: 0.9375rem;
+  }
+  .flow__return svg { width: 22px; height: 22px; flex: none; color: var(--accent); margin-top: 2px; }
+  .flow__return strong { color: var(--fg); }
+
+  @media (min-width: 900px) {
+    .flow {
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--s-4);
+    }
+    .flow__arrow {
+      left: auto;
+      right: -18px;
+      top: 50%;
+      bottom: auto;
+      transform: translateY(-50%);
+    }
+    .flow__return { grid-column: 1 / -1; }
+  }
+</style>

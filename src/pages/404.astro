@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+---
+<Base title="Page not found" description="There is nothing at this address." path="/404/">
+  <Nav />
+  <main id="main" class="container nf">
+    <p class="eyebrow eyebrow--accent">404</p>
+    <h1>Nothing at this address.</h1>
+    <p class="lede">The page may have moved when the docs were reorganised, or the link was mistyped.</p>
+    <div class="nf__actions">
+      <a class="btn btn--primary" href="/">Home <Icon name="arrow" /></a>
+      <a class="btn btn--ghost" href="/docs/getting-started/">Docs <Icon name="book" /></a>
+    </div>
+  </main>
+  <Footer />
+</Base>
+<style>
+  .nf {
+    display: grid;
+    gap: var(--s-4);
+    padding-block: var(--s-9);
+    min-height: 60vh;
+    align-content: start;
+  }
+  .nf__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-3); }
+</style>

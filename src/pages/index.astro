@@ -1,0 +1,529 @@
+---
+import { Code } from 'astro:components';
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+import Trace from '../components/Trace.astro';
+import Flow from '../components/Flow.astro';
+import { site, repos, latestServerVersion } from '../data/site';
+
+const version = await latestServerVersion();
+const releaseUrl = `${repos.server}/releases/tag/v${version}`;
+
+const install = `curl -LO ${repos.server}/releases/download/v${version}/pacenote-ce_${version}_linux_amd64.zip
+unzip pacenote-ce_${version}_linux_amd64.zip
+./pacenote-server
+# Open http://your-server:8080/setup and type the token it printed`;
+
+const minimalPlugin = `package main
+
+import (
+	"context"
+
+	"github.com/pacenote-sim/plugin"
+)
+
+type mine struct{}
+
+func (mine) Settings(context.Context) ([]plugin.Setting, error) { return nil, nil }
+func (mine) Notify(context.Context, plugin.Event) (plugin.Usage, error) {
+	return plugin.Usage{}, nil
+}
+
+func main() { plugin.Serve(mine{}) }`;
+
+const plugins = [
+  {
+    name: 'engineer',
+    title: 'Race engineer',
+    kind: 'Server + client',
+    body: 'Coaches your drivers from their own laps: a line for the corner ahead, the radio in a race, a debrief with setup changes after the stint. Runs on your own language-model key.',
+    server: repos.engineer,
+    client: repos.clientEngineer,
+  },
+  {
+    name: 'voice',
+    title: 'Voice',
+    kind: 'Server + client',
+    body: 'Speaks the engineer\u2019s lines so a driver hears them before the corner, not after. Runs on your own voice-vendor key, and a line spoken once is never paid for twice.',
+    server: repos.voice,
+    client: repos.clientVoice,
+  },
+  {
+    name: 'visual-telemetry',
+    title: 'Visual telemetry',
+    kind: 'Server + client',
+    body: 'Draws every lap as it was driven: speed, revs, throttle and brake against distance, sectors marked, the circuit alongside. Overlay laps to compare drivers. Calls nothing outside your machine and costs nothing to run.',
+    server: repos.visualTelemetry,
+    client: repos.clientVisualTelemetry,
+  },
+  {
+    name: 'iracing',
+    title: 'iRacing',
+    kind: 'Simulator source',
+    body: 'Reads iRacing while it runs and turns it into laps and corners the client understands. Other simulators are added the same way, without touching the client.',
+    server: null,
+    client: repos.clientIracing,
+  },
+];
+---
+<Base title={site.name} description="Pacenote is open source sim racing telemetry your team hosts itself. One server binary, your PostgreSQL database, a client built for your drivers, and plugins for coaching, voice and charts. No subscription.">
+  <Nav />
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <p class="eyebrow eyebrow--accent">Open source · self-hosted · plugin-based</p>
+          <h1>Telemetry your team runs itself.</h1>
+          <p class="lede">
+            Pacenote is a sim racing telemetry server and client. Your team runs the server, drivers pair a
+            client, laps arrive, and plugins do the rest: coaching, a voice, charts. One binary, your database,
+            your budget.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href={releaseUrl} rel="noopener">
+              <Icon name="download" /> Download the server
+            </a>
+            <a class="btn btn--ghost" href="/docs/getting-started/">
+              <Icon name="book" /> Read the docs
+            </a>
+          </div>
+          <ul class="hero__facts" aria-label="At a glance">
+            <li><span class="tag">v{version}</span></li>
+            <li><span class="tag">Linux · macOS · Windows</span></li>
+            <li><span class="tag">GPL-3.0</span></li>
+            <li><span class="tag">Any simulator, via plugins</span></li>
+          </ul>
+        </div>
+        <div class="hero__visual">
+          <Trace />
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section class="install" aria-labelledby="install-title">
+      <div class="container">
+        <div class="install__grid">
+          <div>
+            <p class="eyebrow">Quick start</p>
+            <h2 id="install-title">Three commands and a browser.</h2>
+            <p class="install__text">
+              The server needs PostgreSQL 15 or newer and a host name. Nothing else: no runtime, no package
+              manager, no container unless you want one. On first run it prints a one-time token and waits for
+              you at <code>/setup</code>.
+            </p>
+            <a class="install__link" href="/docs/getting-started/">Full getting-started guide <Icon name="arrow" /></a>
+          </div>
+          <div class="install__code">
+            <Code code={install} lang="bash" theme="github-dark-default" />
+            <p class="install__note">
+              Other platforms and checksums on the <a href={releaseUrl} rel="noopener">release page</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why -->
+    <section class="section why" id="why" aria-labelledby="why-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Why</p>
+          <h2 id="why-title">Your budget, in your hands.</h2>
+          <p class="lede">
+            Telemetry, coaching and a race engineer's voice should not come as a subscription with a price you
+            do not control. Pacenote puts every cost where you can see it.
+          </p>
+        </div>
+        <div class="why__grid">
+          <article class="card">
+            <h3>No subscription</h3>
+            <p>
+              The server, the client and the protocol are free software under the GPL. Run them for your team
+              for as long as you like, on hardware you already have.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Pay vendors directly, if at all</h3>
+            <p>
+              Anything that calls an outside service is a plugin. It runs on your own account, tells you where
+              it sends data before you enable it, shows what each call cost, and stops at the daily cap you set.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Your data stays in your database</h3>
+            <p>
+              Every lap, stint and trace lives in a database you run. Back it up like any other. Credentials are
+              sealed with a key only your server holds, so a copy of the database carries nothing usable.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="section how" id="how" aria-labelledby="how-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">How it works</p>
+          <h2 id="how-title">From the sim to the server and back before the next corner.</h2>
+          <p class="lede">
+            The client measures. The server stores and tells its plugins. A plugin answers. Its client half plays
+            the answer while the lap is still being driven.
+          </p>
+        </div>
+        <Flow />
+        <div class="how__notes">
+          <div>
+            <h3>Sim-agnostic by design</h3>
+            <p>
+              A simulator is a plugin. iRacing is the first; adding another means writing one reader, not changing
+              the client or the server.
+            </p>
+          </div>
+          <div>
+            <h3>The server builds the client</h3>
+            <p>
+              The operator ticks the plugins they want and the server produces one installer with its own address
+              inside. A driver installs one file and pairs it with a code. No settings to copy around.
+            </p>
+          </div>
+          <div>
+            <h3>Plugins cannot take the server down</h3>
+            <p>
+              A server plugin is a separate process talking to the server over a local channel. One that crashes
+              does not take the server with it; one that is slow is skipped at its deadline. The server names no vendor and holds no
+              credential for one.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Plugins -->
+    <section class="section plugins" id="plugins" aria-labelledby="plugins-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Plugins</p>
+          <h2 id="plugins-title">Add what your team needs. Leave out what it does not.</h2>
+          <p class="lede">
+            Everything beyond storing laps is a plugin, and the operator chooses which ones run. Each is free
+            software you install yourself, with no fee attached to it.
+          </p>
+        </div>
+
+        <div class="plugins__grid">
+          {plugins.map((p) => (
+            <article class="card plugin">
+              <div class="plugin__head">
+                <h3>{p.title}</h3>
+                <span class="tag tag--muted">{p.kind}</span>
+              </div>
+              <p>{p.body}</p>
+              <div class="plugin__links">
+                {p.server && <a href={p.server} rel="noopener">Server <Icon name="arrow" /></a>}
+                {p.client && <a href={p.client} rel="noopener">Client <Icon name="arrow" /></a>}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div class="plugins__kinds">
+          <div>
+            <h3>On the server</h3>
+            <p>
+              A server plugin runs beside the server as its own program. It is told when a lap or stint finishes,
+              can keep its own pages and data, and only ever borrows a credential for one call. If it crashes,
+              the server keeps running.
+            </p>
+          </div>
+          <div>
+            <h3>On the rig</h3>
+            <p>
+              A client plugin is compiled into the client your server builds. A source reads one simulator. A
+              companion is the client half of a server plugin: it sends laps, plays what comes back, and shows a
+              page in the client window.
+            </p>
+          </div>
+          <div>
+            <h3>Yours to license</h3>
+            <p>
+              Both plugin contracts are Apache-2.0, and the client carries a plugin exception to its GPL. A plugin
+              depends on the contract, never on the server or the client, and may be licensed however its author
+              likes, open or closed.
+            </p>
+          </div>
+        </div>
+
+        <div class="plugins__write">
+          <div>
+            <p class="eyebrow">Write your own</p>
+            <h3>A server plugin is a small Go program.</h3>
+            <p>
+              Put the binary and its manifest in a folder under the server's plugin directory and press
+              <em>Look for new plugins</em> in the panel. The contract is small and documented, and it is not tied
+              to Go: the message format is published for other languages too.
+            </p>
+            <div class="plugins__write-actions">
+              <a class="btn btn--ghost" href="/docs/writing-a-plugin/">Writing a plugin <Icon name="arrow" /></a>
+              <a class="btn btn--ghost" href={repos.plugin} rel="noopener">Contract on GitHub <Icon name="external" /></a>
+            </div>
+          </div>
+          <Code code={minimalPlugin} lang="go" theme="github-dark-default" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Community -->
+    <section class="section community" id="community" aria-labelledby="community-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Community</p>
+          <h2 id="community-title">Early, open, and built in public.</h2>
+          <p class="lede">
+            The server has tagged releases. The client and the plugins build from source today. Issues and pull
+            requests are welcome on any repository.
+          </p>
+        </div>
+        <div class="community__grid">
+          <div class="card community__licences">
+            <h3>Licences</h3>
+            <table>
+              <thead>
+                <tr><th scope="col">Module</th><th scope="col">Licence</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><a href={repos.server} rel="noopener">server</a></td><td>GPL-3.0-or-later</td></tr>
+                <tr><td><a href={repos.client} rel="noopener">client</a></td><td>GPL-3.0 + plugin exception</td></tr>
+                <tr><td><a href={repos.protocol} rel="noopener">protocol</a></td><td>GPL-3.0 + plugin exception</td></tr>
+                <tr><td><a href={repos.plugin} rel="noopener">plugin</a> (server contract)</td><td>Apache-2.0</td></tr>
+                <tr><td><a href={repos.clientplugin} rel="noopener">clientplugin</a> (client contract)</td><td>Apache-2.0</td></tr>
+              </tbody>
+            </table>
+            <p class="community__fine">
+              Run it for anything, including commercially. Change it and run your changed copy. Hand a changed copy
+              to someone else and you hand over your changes on the same terms. Your plugins are yours: the client
+              and protocol carry a <a href={`${repos.client}/blob/main/LICENSE-EXCEPTION`} rel="noopener">plugin
+              exception</a>, so a client built with your plugin can ship under your plugin's licence.
+            </p>
+          </div>
+          <div class="community__links">
+            <a class="card community__link" href={site.github} rel="noopener">
+              <Icon name="github" />
+              <span>
+                <strong>github.com/Pacenote-Sim</strong>
+                <span>The server, the client, the plugin contracts and the official plugins.</span>
+              </span>
+            </a>
+            <a class="card community__link" href={site.issues} rel="noopener">
+              <Icon name="external" />
+              <span>
+                <strong>Report a problem</strong>
+                <span>Open an issue on the repository it belongs to. A recording of the session helps.</span>
+              </span>
+            </a>
+            <a class="card community__link" href="/docs/architecture/">
+              <Icon name="book" />
+              <span>
+                <strong>Read the architecture</strong>
+                <span>Components, repositories, the wire protocol and the plugin transport.</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Hero */
+  .hero {
+    position: relative;
+    padding-block: var(--s-8) var(--s-7);
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -20% -10% auto -10%;
+    height: 70%;
+    background:
+      radial-gradient(60% 60% at 70% 30%, rgba(255, 77, 46, 0.14), transparent 70%),
+      radial-gradient(40% 50% at 20% 60%, rgba(69, 196, 134, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .hero__grid {
+    position: relative;
+    display: grid;
+    gap: var(--s-7);
+    align-items: center;
+  }
+  .hero__copy { display: grid; gap: var(--s-5); }
+  .hero__copy h1 { max-width: 14ch; }
+  .hero__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .hero__facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  @media (min-width: 900px) {
+    .hero { padding-block: var(--s-9); }
+    .hero__grid { grid-template-columns: 1.05fr 1fr; gap: var(--s-8); }
+  }
+
+  /* Install */
+  .install {
+    border-block: 1px solid var(--border);
+    background: var(--bg-2);
+    padding-block: var(--s-7);
+  }
+  .install__grid { display: grid; gap: var(--s-6); align-items: start; }
+  .install h2 { margin: var(--s-3) 0 var(--s-4); }
+  .install__text { color: var(--fg-2); max-width: 46ch; }
+  .install__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: var(--s-4);
+    min-height: 44px;
+    text-decoration: none;
+    color: var(--fg);
+    font-weight: 500;
+  }
+  .install__link :global(svg) { width: 16px; height: 16px; transition: transform 160ms var(--ease); }
+  .install__link:hover :global(svg) { transform: translateX(3px); }
+  .install__code { min-width: 0; }
+  .install__note { margin-top: var(--s-3); font-size: 0.875rem; color: var(--muted); }
+  @media (min-width: 900px) {
+    .install__grid { grid-template-columns: 1fr 1.3fr; gap: var(--s-8); }
+  }
+
+  /* Why */
+  .why__grid { display: grid; gap: var(--s-4); }
+  @media (min-width: 720px) { .why__grid { grid-template-columns: repeat(3, 1fr); } }
+
+  /* How */
+  .how { border-top: 1px solid var(--border); }
+  .how__notes {
+    display: grid;
+    gap: var(--s-5);
+    margin-top: var(--s-7);
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--border);
+  }
+  .how__notes h3 { margin-bottom: var(--s-2); }
+  .how__notes p { color: var(--fg-2); font-size: 0.9375rem; }
+  @media (min-width: 720px) { .how__notes { grid-template-columns: repeat(3, 1fr); gap: var(--s-6); } }
+
+  /* Plugins */
+  .plugins { border-top: 1px solid var(--border); background: var(--bg-2); }
+  .plugins__grid { display: grid; gap: var(--s-4); }
+  .plugin { display: flex; flex-direction: column; }
+  .plugin__head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-2);
+    margin-bottom: var(--s-3);
+  }
+  .plugin__head h3 { margin: 0; }
+  .plugin p { font-size: 0.9375rem; flex: 1; }
+  .plugin__links {
+    display: flex;
+    gap: var(--s-4);
+    margin-top: var(--s-4);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--border);
+  }
+  .plugin__links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--fg-2);
+    text-decoration: none;
+  }
+  .plugin__links a:hover { color: var(--fg); }
+  .plugin__links :global(svg) { width: 14px; height: 14px; transition: transform 160ms var(--ease); }
+  .plugin__links a:hover :global(svg) { transform: translateX(3px); }
+  @media (min-width: 720px) { .plugins__grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .plugins__grid { grid-template-columns: repeat(4, 1fr); } }
+  .plugins__kinds {
+    display: grid;
+    gap: var(--s-5);
+    margin-top: var(--s-7);
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--border);
+  }
+  .plugins__kinds h3 { margin-bottom: var(--s-2); }
+  .plugins__kinds p { color: var(--fg-2); font-size: 0.9375rem; }
+  @media (min-width: 720px) { .plugins__kinds { grid-template-columns: repeat(3, 1fr); gap: var(--s-6); } }
+  .plugins__write {
+    display: grid;
+    gap: var(--s-5);
+    margin-top: var(--s-8);
+    padding: var(--s-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    align-items: center;
+  }
+  .plugins__write h3 { margin: var(--s-3) 0 var(--s-3); }
+  .plugins__write > div > p { color: var(--fg-2); }
+  .plugins__write-actions { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
+  .plugins__write :global(.astro-code) { min-width: 0; }
+  @media (min-width: 900px) {
+    .plugins__write { grid-template-columns: 1fr 1.2fr; gap: var(--s-7); padding: var(--s-6); }
+  }
+
+  /* Community */
+  .community { border-top: 1px solid var(--border); }
+  .community__grid { display: grid; gap: var(--s-4); }
+  .community__licences table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+    margin-top: var(--s-3);
+  }
+  .community__licences th, .community__licences td {
+    text-align: left;
+    padding: var(--s-2) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .community__licences th {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .community__licences td:last-child { color: var(--fg-2); font-family: var(--font-mono); font-size: 0.875rem; }
+  .community__fine { margin-top: var(--s-4); font-size: 0.875rem; color: var(--muted); }
+  .community__links { display: grid; gap: var(--s-3); align-content: start; }
+  .community__link {
+    display: flex;
+    gap: var(--s-4);
+    align-items: flex-start;
+    text-decoration: none;
+    transition: border-color 160ms var(--ease), background 160ms var(--ease);
+  }
+  .community__link:hover { border-color: var(--border-strong); background: var(--card-2); }
+  .community__link :global(svg) { width: 22px; height: 22px; flex: none; color: var(--accent); margin-top: 2px; }
+  .community__link > span { display: grid; gap: 2px; }
+  .community__link strong { color: var(--fg); }
+  .community__link span span { color: var(--fg-2); font-size: 0.9375rem; }
+  @media (min-width: 900px) {
+    .community__grid { grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+  }
+</style>

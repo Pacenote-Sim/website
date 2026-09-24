@@ -1,0 +1,75 @@
+---
+import Wordmark from './Wordmark.astro';
+import Icon from './Icon.astro';
+import { site } from '../data/site';
+
+interface Props { variant?: 'landing' | 'docs' }
+const { variant = 'landing' } = Astro.props;
+const onDocs = variant === 'docs';
+---
+<header class="nav">
+  <div class="container nav__inner">
+    <Wordmark />
+    <nav aria-label="Primary">
+      <ul>
+        {!onDocs && <li class="nav__section"><a href="#how">How it works</a></li>}
+        {!onDocs && <li class="nav__section"><a href="#plugins">Plugins</a></li>}
+        <li><a href="/docs/getting-started/" aria-current={onDocs ? 'page' : undefined}>Docs</a></li>
+        <li>
+          <a class="nav__gh" href={site.github} rel="noopener">
+            <Icon name="github" />
+            <span>GitHub</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: var(--nav-h);
+    background: rgba(10, 12, 16, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav__inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+  li a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 var(--s-3);
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    color: var(--fg-2);
+    transition: color 160ms var(--ease), background 160ms var(--ease);
+  }
+  li a:hover, li a[aria-current='page'] { color: var(--fg); background: var(--bg-2); }
+  .nav__gh :global(svg) { width: 18px; height: 18px; }
+  .nav__section { display: none; }
+  @media (min-width: 640px) {
+    .nav__section { display: block; }
+  }
+  @media (max-width: 400px) {
+    .nav__gh span { display: none; }
+  }
+</style>
