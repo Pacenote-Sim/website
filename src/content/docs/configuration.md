@@ -32,6 +32,7 @@ Every value in the configuration file can be overridden from the environment:
 | `PACENOTE_SECRET_KEY` | The data key that opens stored credentials. |
 | `PACENOTE_CLIENT_BINARY` | The prebuilt Windows client, if it is not in `<data>/client/`. |
 | `PACENOTE_LOG_LEVEL` | `debug`, `info`, `warn` or `error`. |
+| `PACENOTE_MARKETPLACE_URL` | Where the plugin index is read from, for a mirror. Default: pacenote.tech. The signature is checked against the same key either way. |
 
 Flags: `-data`, `-log-level`, `-version`.
 
@@ -58,6 +59,22 @@ The **private** port serves Prometheus metrics and pprof, and binds to loopback.
 Structured JSON on stdout, one line per event, with a redaction layer in front. A token, an `Authorization` header, a connection string's password or an API key cannot reach a log line: the handler removes them rather than trusting every call site to remember.
 
 Everything a plugin prints is echoed into the server's log as `plugin printed`, under the plugin's name and scrubbed of the credentials it was lent, beside the panel card that already showed it.
+
+## The marketplace
+
+The plugins page has a card for the [marketplace](/plugins/): the plugins Pacenote has reviewed and
+approved. It is **off until you turn it on**. The server never goes online otherwise, and an upgrade
+must not change that on your behalf.
+
+On, the server reads the signed index once an hour and verifies it against a key built into the
+binary. Each listed server plugin has an Install button: the package the marketplace built from the
+reviewed source is downloaded, checked against the checksum in the index, unpacked into the plugin
+directory, and the plugin is started, or restarted if an older version was running. A version the
+marketplace has withdrawn is called out on its row. Nothing about your drivers or your laps is sent;
+the only request is for the index and, when you ask, a package.
+
+The switch is a setting in the database, so it survives a restart and a move. `PACENOTE_MARKETPLACE_URL`
+points the server at a mirror of the index.
 
 ## Plugin settings and spend
 
