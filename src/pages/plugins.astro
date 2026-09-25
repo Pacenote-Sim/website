@@ -1,0 +1,181 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+
+const indexUrl = '/marketplace/index.json';
+---
+<Base title="Plugins" description="Every plugin approved for Pacenote: what it does, who wrote it, what it calls, and where to get it.">
+  <Nav variant="docs" />
+  <main id="main" class="container mp">
+    <header class="mp__head">
+      <p class="eyebrow">Marketplace</p>
+      <h1>Approved plugins.</h1>
+      <p class="lede">
+        Every plugin here has passed the automated checks and been read by a person. The list is the
+        signed index a server reads too; nothing is listed that a pull request did not add.
+      </p>
+      <p class="mp__links">
+        <a href="https://github.com/Pacenote-Sim/marketplace/blob/main/SUBMITTING.md" rel="noopener">Publish a plugin <Icon name="external" /></a>
+        <a href={indexUrl}>index.json</a>
+        <a href="/marketplace/PUBLIC_KEY">public key</a>
+      </p>
+    </header>
+
+    <form class="mp__filters" aria-label="Filter plugins" data-filters>
+      <label class="mp__search">
+        <span class="sr-only">Search</span>
+        <input type="search" name="q" placeholder="Search by name or what it does" autocomplete="off" />
+      </label>
+      <fieldset class="mp__kinds">
+        <legend class="sr-only">Kind</legend>
+        <label><input type="radio" name="kind" value="" checked /> All</label>
+        <label><input type="radio" name="kind" value="server" /> Server</label>
+        <label><input type="radio" name="kind" value="source" /> Simulator</label>
+        <label><input type="radio" name="kind" value="companion" /> Companion</label>
+      </fieldset>
+    </form>
+
+    <p class="mp__status" data-status aria-live="polite">Loading the index…</p>
+    <noscript><p class="mp__status">This page reads the index in the browser. Without JavaScript, read <a href={indexUrl}>index.json</a> directly.</p></noscript>
+
+    <ul class="mp__list" data-list hidden></ul>
+
+    <template data-card>
+      <li class="card plugin">
+        <div class="plugin__head">
+          <h2 class="plugin__title"></h2>
+          <span class="tag tag--muted plugin__kind"></span>
+        </div>
+        <p class="plugin__summary"></p>
+        <dl class="plugin__facts">
+          <div><dt>Author</dt><dd class="plugin__author"></dd></div>
+          <div><dt>Version</dt><dd class="plugin__version"></dd></div>
+          <div><dt>Licence</dt><dd class="plugin__licence"></dd></div>
+          <div><dt>Calls</dt><dd class="plugin__calls"></dd></div>
+        </dl>
+        <div class="plugin__links">
+          <a class="plugin__repo" rel="noopener">Repository <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="plugin__download" rel="noopener" hidden>Download <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg></a>
+        </div>
+      </li>
+    </template>
+  </main>
+  <Footer />
+</Base>
+
+<script define:vars={{ indexUrl }}>
+  const list = document.querySelector('[data-list]');
+  const status = document.querySelector('[data-status]');
+  const tpl = document.querySelector('[data-card]');
+  const form = document.querySelector('[data-filters]');
+  const kindLabel = { server: 'Server plugin', source: 'Simulator source', companion: 'Companion' };
+  let plugins = [];
+
+  function latest(p) {
+    for (let i = p.versions.length - 1; i >= 0; i--) if (p.versions[i].status === 'approved') return p.versions[i];
+    return null;
+  }
+
+  function render() {
+    const q = form.q.value.trim().toLowerCase();
+    const kind = form.kind.value;
+    list.replaceChildren();
+    let n = 0;
+    for (const p of plugins) {
+      const v = latest(p);
+      if (!v) continue;
+      if (kind && p.kind !== kind) continue;
+      if (q && !(p.name + ' ' + p.title + ' ' + p.summary + ' ' + p.author).toLowerCase().includes(q)) continue;
+      const card = tpl.content.cloneNode(true);
+      card.querySelector('.plugin__title').textContent = p.title;
+      card.querySelector('.plugin__kind').textContent = kindLabel[p.kind] || p.kind;
+      card.querySelector('.plugin__summary').textContent = p.summary;
+      card.querySelector('.plugin__author').textContent = p.author;
+      card.querySelector('.plugin__version').textContent = v.tag + ' · approved ' + v.approved;
+      card.querySelector('.plugin__licence').textContent = p.licence + (p.pricing === 'paid' ? ' · paid' : '');
+      card.querySelector('.plugin__calls').textContent = p.calls.length ? p.calls.join(', ') : 'nothing outside your machine';
+      card.querySelector('.plugin__repo').href = p.repository;
+      const dl = card.querySelector('.plugin__download');
+      if (v.artifacts && v.artifacts.length) {
+        dl.hidden = false;
+        dl.href = 'https://github.com/Pacenote-Sim/marketplace/releases/tag/' + p.name + '-' + v.tag;
+      }
+      list.appendChild(card);
+      n++;
+    }
+    list.hidden = n === 0;
+    status.textContent = n === 0 ? 'No plugin matches.' : `${n} plugin${n === 1 ? '' : 's'}`;
+  }
+
+  fetch(indexUrl, { cache: 'no-cache' })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((idx) => { plugins = idx.plugins || []; render(); })
+    .catch(() => { status.textContent = 'The index could not be loaded. Try again in a moment, or read index.json directly.'; });
+  form.addEventListener('input', render);
+  form.addEventListener('submit', (e) => e.preventDefault());
+</script>
+
+<style>
+  .mp { padding-block: var(--s-7) var(--s-9); }
+  .mp__head { display: grid; gap: var(--s-3); max-width: 44rem; margin-bottom: var(--s-6); }
+  .mp__links { display: flex; flex-wrap: wrap; gap: var(--s-4); font-family: var(--font-mono); font-size: 0.8125rem; }
+  .mp__links a { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; color: var(--fg-2); text-decoration: none; }
+  .mp__links a:hover { color: var(--fg); }
+  .mp__links :global(svg) { width: 14px; height: 14px; }
+  .mp__filters {
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-4);
+    margin-bottom: var(--s-4);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+  }
+  .mp__search input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 var(--s-4);
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font: inherit;
+  }
+  .mp__search input::placeholder { color: var(--muted); }
+  .mp__kinds { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0; padding: 0; border: 0; }
+  .mp__kinds label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 var(--s-3);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 0.9375rem;
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+  .mp__kinds label:has(input:checked) { border-color: var(--accent); color: var(--fg); background: var(--accent-soft); }
+  .mp__kinds input { accent-color: var(--accent); }
+  .mp__status { color: var(--muted); font-family: var(--font-mono); font-size: 0.8125rem; margin-bottom: var(--s-4); }
+  .mp__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+  .plugin { display: flex; flex-direction: column; }
+  .plugin__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); margin-bottom: var(--s-3); }
+  .plugin__title { font-size: 1.25rem; margin: 0; }
+  .plugin__summary { font-size: 0.9375rem; flex: 1; }
+  .plugin__facts { display: grid; gap: var(--s-2); margin: var(--s-4) 0 0; font-size: 0.875rem; }
+  .plugin__facts div { display: grid; grid-template-columns: 5rem 1fr; gap: var(--s-2); }
+  .plugin__facts dt { color: var(--muted); font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 2px; }
+  .plugin__facts dd { margin: 0; color: var(--fg-2); overflow-wrap: anywhere; }
+  .plugin__links { display: flex; gap: var(--s-4); margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--border); }
+  .plugin__links a { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--fg-2); text-decoration: none; }
+  .plugin__links a:hover { color: var(--fg); }
+  .plugin__links svg { width: 14px; height: 14px; }
+  @media (min-width: 720px) {
+    .mp__filters { grid-template-columns: 1fr auto; align-items: center; }
+    .mp__list { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1000px) { .mp__list { grid-template-columns: repeat(3, 1fr); } }
+</style>

@@ -13,8 +13,8 @@ const onDocs = variant === 'docs';
     <nav aria-label="Primary">
       <ul>
         {!onDocs && <li class="nav__section"><a href="#how">How it works</a></li>}
-        {!onDocs && <li class="nav__section"><a href="#plugins">Plugins</a></li>}
-        <li><a href="/docs/getting-started/" aria-current={onDocs ? 'page' : undefined}>Docs</a></li>
+        <li><a href="/plugins/" aria-current={Astro.url.pathname.startsWith('/plugins') ? 'page' : undefined}>Plugins</a></li>
+        <li><a href="/docs/getting-started/" aria-current={onDocs && !Astro.url.pathname.startsWith('/plugins') ? 'page' : undefined}>Docs</a></li>
         <li>
           <a class="nav__gh" href={site.github} rel="noopener">
             <Icon name="github" />

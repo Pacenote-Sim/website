@@ -6,6 +6,15 @@ www.pacenote.tech {
 	root * /var/www/pacenote
 	encode zstd gzip
 
+	# The plugin index is published by the marketplace repository's CI to
+	# GitHub Pages; serve it here so the address a server is given is ours.
+	handle /marketplace/* {
+		reverse_proxy https://pacenote-sim.github.io {
+			header_up Host pacenote-sim.github.io
+		}
+		header Cache-Control "public, max-age=300"
+	}
+
 	# /docs has no page of its own.
 	redir /docs /docs/getting-started/ permanent
 	redir /docs/ /docs/getting-started/ permanent
